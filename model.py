@@ -28,7 +28,24 @@ class Generator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-# Load the generator model
+
+"""
+    Load a pre-trained generator model from the given model path.
+
+    Args:
+        model_path (str): The path to the saved model file.
+
+    Returns:
+        torch.nn.Module: The loaded generator model.
+
+    Description:
+        This function loads a pre-trained generator model from the given model path. It first defines the number of
+        latent dimensions (nz), the number of feature maps in the generator (ngf), and the number of channels in the
+        output image (nc). It then determines the device to use for loading the model (CPU if GPU is not available,
+        otherwise GPU). It creates an instance of the Generator class with the specified parameters and moves it to the
+        device. It loads the state dictionary of the model from the saved model file using the specified device.
+        Finally, it sets the model to evaluation mode and returns the loaded generator model.
+"""
 def load_generator(model_path):
     nz = 100
     ngf = 64
@@ -41,7 +58,32 @@ def load_generator(model_path):
     netG.eval()
     return netG
 
-# Function to generate an image from user input
+
+"""
+    Generates an image from the given text using a pre-trained GAN model.
+
+    Args:
+        netG (torch.nn.Module): The pre-trained GAN model used for generating the image.
+        text (str): The text input used to generate the image.
+
+    Returns:
+        torch.Tensor: The generated image as a tensor.
+
+    Raises:
+        None
+
+    Examples:
+        >>> netG = load_generator('model/generator.pt')
+        >>> image = generate_image_from_text(netG, 'A cat sitting on a couch.')
+        >>> image.shape
+        torch.Size([1, 3, 256, 256])
+
+    Note:
+        This function assumes that the GAN model has been loaded and is ready to generate images.
+        The input text is processed using the Spacy library to extract relevant information.
+        The generated image is obtained by passing noise through the GAN model.
+        The function does not modify the GAN model or the input text.
+"""
 def generate_image_from_text(netG, text):
     nlp = spacy.load('en_core_web_sm')
     doc = nlp(text)
