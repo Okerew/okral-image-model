@@ -3,6 +3,11 @@ An image model created on the base of okrol model by me
 <br>
 ![Screenshot 2024-05-18 at 14 12 41](https://github.com/Okerew/okral-image-model/assets/93822247/b5d8b71f-feea-4337-9fce-4a4278ea151b)
 ______________________
+Installation
+------------------
+Install the requirements `pip install -r requirements.txt`, 
+Install the language processer `python -m spacy download en_core_web_sm`
+______________
 Usage
 -------------------
 The model is not really great and shouldn't be used for anything else than experimenting:
