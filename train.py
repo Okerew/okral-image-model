@@ -13,7 +13,14 @@ import time
 
 timestamp = time.time()
 current_date = time.ctime(timestamp)
-# Define the GAN architecture
+"""
+Initializes the Generator model.
+
+Parameters:
+    nz (int): The number of input channels.
+    ngf (int): The number of filters in the first convolutional layer.
+    nc (int): The number of output channels.
+"""
 class Generator(nn.Module):
     def __init__(self, nz, ngf, nc):
         super(Generator, self).__init__()
@@ -38,6 +45,28 @@ class Generator(nn.Module):
         return self.main(input)
 
 
+"""
+        Initializes the Discriminator object.
+
+        Args:
+            nc (int): The number of input channels.
+            ndf (int): The number of feature channels.
+
+        Initializes the main Sequential module with the following layers:
+        - nn.Conv2d(nc, ndf, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
+        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
+        - nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
+        - nn.BatchNorm2d(ndf * 2): Batch normalization layer with ndf * 2 channels.
+        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
+        - nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
+        - nn.BatchNorm2d(ndf * 4): Batch normalization layer with ndf * 4 channels.
+        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
+        - nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
+        - nn.BatchNorm2d(ndf * 8): Batch normalization layer with ndf * 8 channels.
+        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
+        - nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False): Convolutional layer with kernel size 4, stride 1, and no bias.
+        - nn.Sigmoid(): Sigmoid activation function.
+"""
 class Discriminator(nn.Module):
     def __init__(self, nc, ndf):
         super(Discriminator, self).__init__()
@@ -61,7 +90,13 @@ class Discriminator(nn.Module):
         return self.main(input)
 
 
-# Custom dataset class
+"""
+        Initializes a new instance of the TextImageDataset class.
+
+        Args:
+            data_folder (str): The path to the folder containing the data files.
+            transform (callable, optional): A function that takes a PIL Image and returns a transformed version. Defaults to None.
+"""
 class TextImageDataset(Dataset):
     def __init__(self, data_folder, transform=None):
         self.data_folder = data_folder
