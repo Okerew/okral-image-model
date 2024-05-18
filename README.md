@@ -1,5 +1,7 @@
 # Okrol-Image-Model
 An image model created on the base of okrol model by me
+<br>
+![Screenshot 2024-05-18 at 14 12 41](https://github.com/Okerew/okral-image-model/assets/93822247/b5d8b71f-feea-4337-9fce-4a4278ea151b)
 ______________________
 Usage
 -------------------
