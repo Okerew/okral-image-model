@@ -28,3 +28,7 @@ This is a blueprint for example data
 ]
 
 ```
+_________________
+Diffusion
+--------------
+For now it is not producing proper images with the diffusion algorithm it will be improved though.
