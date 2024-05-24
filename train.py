@@ -9,17 +9,21 @@ import torchvision.utils as vutils
 from PIL import Image
 import spacy
 import time
-
+import math
 
 timestamp = time.time()
 current_date = time.ctime(timestamp)
-"""
-Initializes the Generator model.
 
-Parameters:
-    nz (int): The number of input channels.
-    ngf (int): The number of filters in the first convolutional layer.
-    nc (int): The number of output channels.
+"""
+Initializes a new instance of the Generator class.
+
+Args:
+    nz (int): The size of the latent vector.
+    ngf (int): The number of feature maps in the generator.
+    nc (int): The number of color channels in the output image.
+
+Initializes the main sequence of convolutional transpose layers with the specified parameters.
+
 """
 class Generator(nn.Module):
     def __init__(self, nz, ngf, nc):
@@ -44,29 +48,16 @@ class Generator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-
-"""
-        Initializes the Discriminator object.
+    """
+        Initializes a new instance of the Discriminator class.
 
         Args:
-            nc (int): The number of input channels.
-            ndf (int): The number of feature channels.
+            nc (int): The number of input color channels.
+            ndf (int): The number of feature maps in the first convolutional layer.
 
-        Initializes the main Sequential module with the following layers:
-        - nn.Conv2d(nc, ndf, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
-        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
-        - nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
-        - nn.BatchNorm2d(ndf * 2): Batch normalization layer with ndf * 2 channels.
-        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
-        - nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
-        - nn.BatchNorm2d(ndf * 4): Batch normalization layer with ndf * 4 channels.
-        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
-        - nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False): Convolutional layer with kernel size 4, stride 2, and no bias.
-        - nn.BatchNorm2d(ndf * 8): Batch normalization layer with ndf * 8 channels.
-        - nn.LeakyReLU(0.2, inplace=True): Leaky ReLU activation function with negative slope 0.2 and in-place computation.
-        - nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False): Convolutional layer with kernel size 4, stride 1, and no bias.
-        - nn.Sigmoid(): Sigmoid activation function.
-"""
+        Initializes the main sequence of convolutional layers with the specified parameters.
+
+        """
 class Discriminator(nn.Module):
     def __init__(self, nc, ndf):
         super(Discriminator, self).__init__()
@@ -89,14 +80,6 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-
-"""
-        Initializes a new instance of the TextImageDataset class.
-
-        Args:
-            data_folder (str): The path to the folder containing the data files.
-            transform (callable, optional): A function that takes a PIL Image and returns a transformed version. Defaults to None.
-"""
 class TextImageDataset(Dataset):
     def __init__(self, data_folder, transform=None):
         self.data_folder = data_folder
@@ -123,6 +106,108 @@ class TextImageDataset(Dataset):
             image = self.transform(image)
         return text, image
 
+    """
+    Initializes a ResidualBlock object.
+
+    Args:
+        in_channels (int): The number of input channels.
+    """
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(in_channels)
+
+    def forward(self, x):
+        identity = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out += identity
+        out = self.relu(out)
+        return out
+
+    """
+        Initializes a new instance of the DiffusionModel class.
+
+        Args:
+            nc (int): The number of input channels.
+            ngf (int, optional): The number of feature maps in the encoder and decoder. Defaults to 64.
+
+        Initializes the main sequence of convolutional layers with the specified parameters.
+
+        The encoder consists of the following layers:
+        - Conv2d layer with kernel size 4, stride 2, and padding 1.
+        - BatchNorm2d layer.
+        - ReLU activation function.
+        - Conv2d layer with kernel size 4, stride 2, and padding 1.
+        - BatchNorm2d layer.
+        - ReLU activation function.
+        - ResidualBlock layer.
+
+        The decoder consists of the following layers:
+        - ResidualBlock layer.
+        - ConvTranspose2d layer with kernel size 4, stride 2, and padding 1.
+        - BatchNorm2d layer.
+        - ReLU activation function.
+        - ConvTranspose2d layer with kernel size 4, stride 2, and padding 1.
+        - Tanh activation function.
+        """
+class DiffusionModel(nn.Module):
+    def __init__(self, nc, ngf=64):
+        super(DiffusionModel, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(nc, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            nn.Conv2d(ngf, ngf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            ResidualBlock(ngf * 2)
+        )
+
+        self.decoder = nn.Sequential(
+            ResidualBlock(ngf * 2),
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
+            nn.Tanh(),
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        decoded = torch.clamp(decoded, 0, 1)
+        return decoded
+
+    """
+        Initializes a new instance of the CosineScheduler class.
+
+        Args:
+            num_steps (int): The number of steps in the cosine schedule.
+            max_noise (float, optional): The maximum noise level. Defaults to 1.0.
+            min_noise (float, optional): The minimum noise level. Defaults to 0.0.
+        """
+class CosineScheduler:
+    def __init__(self, num_steps, max_noise=1.0, min_noise=0.0):
+        self.num_steps = num_steps
+        self.max_noise = max_noise
+        self.min_noise = min_noise
+
+    def step(self, step):
+        alpha = self.min_noise + 0.5 * (self.max_noise - self.min_noise) * (1 + math.cos(step * math.pi / self.num_steps))
+        return alpha
+
+def add_noise(images, noise_level):
+    noise = torch.randn_like(images) * noise_level
+    noisy_images = images + noise
+    return noisy_images
 
 # Preprocessing and loading data
 transform = transforms.Compose([
@@ -145,11 +230,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 netG = Generator(nz, ngf, nc).to(device)
 netD = Discriminator(nc, ndf).to(device)
+diffusion_model = DiffusionModel(nc).to(device)
 
 # Loss function and optimizers
-criterion = nn.BCELoss()
+criterion = nn.MSELoss()
 optimizerD = optim.Adam(netD.parameters(), lr=0.0002, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=0.0002, betas=(0.5, 0.999))
+diffusion_optimizer = optim.Adam(diffusion_model.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
 # Create directories if they don't exist
 if not os.path.exists('output'):
@@ -157,7 +244,7 @@ if not os.path.exists('output'):
 if not os.path.exists('model'):
     os.makedirs('model')
 
-# Training loop
+# Training loop for GAN
 num_epochs = 100
 sample_images = []
 
@@ -165,7 +252,7 @@ for epoch in range(num_epochs):
     for i, (texts, images) in enumerate(dataloader):
         # Update Discriminator
         netD.zero_grad()
-        real_images = images.to(device)
+        real_images = images.to(device).clamp(0, 1)  # Ensure images are in [0, 1]
         batch_size = real_images.size(0)
         labels = torch.full((batch_size,), 1, dtype=torch.float, device=device)
         output = netD(real_images).view(-1)
@@ -199,7 +286,7 @@ for epoch in range(num_epochs):
                           normalize=True)
         sample_images.append(fake_images[0].cpu())
 
-# Save the models
+# Save the GAN models
 torch.save(netG.state_dict(), 'model/generator.pt')
 torch.save(netD.state_dict(), 'model/discriminator.pt')
 
@@ -207,4 +294,30 @@ torch.save(netD.state_dict(), 'model/discriminator.pt')
 final_image = torch.cat(sample_images[:10], dim=0)  # Stack images along the channel dimension
 
 # Save the final image tensor
-torch.save(final_image, f'output/final_image{current_date}.pt')
+torch.save(final_image, f'output/final_image_{current_date}.pt')
+
+# Training loop for diffusion model
+num_steps = 1000  # Number of steps in the noise schedule
+noise_scheduler = CosineScheduler(num_steps)
+
+for epoch in range(num_epochs):
+    for i, (texts, images) in enumerate(dataloader):
+        images = images.clamp(0, 1)  # Ensure the images are normalized to the range [0, 1]
+        images = images.to(device)
+        step = epoch * len(dataloader) + i
+        noise_level = noise_scheduler.step(step)
+        noisy_images = add_noise(images, noise_level)
+        denoised_images = diffusion_model(noisy_images)
+
+        # Calculate loss
+        loss = criterion(denoised_images, images)
+
+        # Backward pass and optimization
+        diffusion_optimizer.zero_grad()
+        loss.backward()
+        diffusion_optimizer.step()
+
+    print(f"Epoch [{epoch + 1}/{num_epochs}], Diffusion Loss: {loss.item():.4f}")
+
+# Save the diffusion model
+torch.save(diffusion_model.state_dict(), 'model/diffusion_model.pt')
