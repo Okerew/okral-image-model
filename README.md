@@ -1,7 +1,7 @@
 # Okrol-Image-Model
 An image model created on the base of okrol model by me
 <br>
-![Screenshot 2024-05-18 at 14 12 41](https://github.com/Okerew/okral-image-model/assets/93822247/b5d8b71f-feea-4337-9fce-4a4278ea151b)
+![Screenshot 2024-05-24 at 17 49 04](https://github.com/Okerew/okral-image-model/assets/93822247/dbdd8ce5-70d8-4e80-9cc1-6b6e927b6ffa)
 ______________________
 Installation
 ------------------
