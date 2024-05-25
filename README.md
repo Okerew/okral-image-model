@@ -4,7 +4,6 @@ An image model created on the base of okrol model by me
 ![image](https://github.com/Okerew/okral-image-model/assets/93822247/3c5f1037-3909-4d10-bdb9-7edf336fbfe8)
 <br>
 ![diffusion_final_image_id_example1 json_0_Sat May 25 14:21:57 2024](https://github.com/Okerew/okral-image-model/assets/93822247/f327b6bc-9e00-4d88-8f0f-ee84ae9dd51f)
-![image](https://github.com/Okerew/okral-image-model/assets/93822247/3c5f1037-3909-4d10-bdb9-7edf336fbfe8)
 ![diffusion_final_image_id_example1 json_1_Sat May 25 14:35:44 2024](https://github.com/Okerew/okral-image-model/assets/93822247/a71fa222-1cef-4460-b520-7537a09bff62)
 ______________________
 Installation
