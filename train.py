@@ -14,18 +14,15 @@ import math
 timestamp = time.time()
 current_date = time.ctime(timestamp)
 
-"""
-Initializes a new instance of the Generator class.
-
-Args:
-    nz (int): The size of the latent vector.
-    ngf (int): The number of feature maps in the generator.
-    nc (int): The number of color channels in the output image.
-
-Initializes the main sequence of convolutional transpose layers with the specified parameters.
-
-"""
 class Generator(nn.Module):
+    """
+    Generator network for GAN.
+
+    Args:
+        nz (int): Size of the latent vector (input noise).
+        ngf (int): Size of feature maps in generator.
+        nc (int): Number of channels in the output image.
+    """
     def __init__(self, nz, ngf, nc):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
@@ -46,19 +43,25 @@ class Generator(nn.Module):
         )
 
     def forward(self, input):
-        return self.main(input)
-
-    """
-        Initializes a new instance of the Discriminator class.
+        """
+        Forward pass through the generator.
 
         Args:
-            nc (int): The number of input color channels.
-            ndf (int): The number of feature maps in the first convolutional layer.
+            input (torch.Tensor): Input tensor (latent vector).
 
-        Initializes the main sequence of convolutional layers with the specified parameters.
-
+        Returns:
+            torch.Tensor: Generated image.
         """
+        return self.main(input)
+
 class Discriminator(nn.Module):
+    """
+    Discriminator network for GAN.
+
+    Args:
+        nc (int): Number of channels in the input image.
+        ndf (int): Size of feature maps in discriminator.
+    """
     def __init__(self, nc, ndf):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
@@ -78,9 +81,25 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, input):
+        """
+        Forward pass through the discriminator.
+
+        Args:
+            input (torch.Tensor): Input tensor (image).
+
+        Returns:
+            torch.Tensor: Discriminator output.
+        """
         return self.main(input)
 
 class TextImageDataset(Dataset):
+    """
+    Custom dataset for loading text and image pairs.
+
+    Args:
+        data_folder (str): Path to the folder containing the data.
+        transform (callable, optional): Optional transform to be applied on an image sample.
+    """
     def __init__(self, data_folder, transform=None):
         self.data_folder = data_folder
         self.transform = transform
@@ -88,31 +107,52 @@ class TextImageDataset(Dataset):
         self.data = self.load_data()
 
     def load_data(self):
+        """
+        Load data from the data folder.
+
+        Returns:
+            list: List of tuples containing text, image path, and identifier.
+        """
         data = []
         for file_name in os.listdir(self.data_folder):
             with open(os.path.join(self.data_folder, file_name), 'r') as f:
                 file_contents = json.load(f)
-                for entry in file_contents:
-                    data.append((entry['text'], entry['image']))
+                for idx, entry in enumerate(file_contents):
+                    data.append((entry['text'], entry['image'], file_name + '_' + str(idx)))
         return data
 
     def __len__(self):
+        """
+        Get the length of the dataset.
+
+        Returns:
+            int: Number of samples in the dataset.
+        """
         return len(self.data)
 
     def __getitem__(self, idx):
-        text, image_path = self.data[idx]
+        """
+        Get a sample from the dataset.
+
+        Args:
+            idx (int): Index of the sample.
+
+        Returns:
+            tuple: Tuple containing text, image, and identifier.
+        """
+        text, image_path, identifier = self.data[idx]
         image = Image.open(image_path).convert('RGB')
         if self.transform:
             image = self.transform(image)
-        return text, image
+        return text, image, identifier
 
+class ResidualBlock(nn.Module):
     """
-    Initializes a ResidualBlock object.
+    Residual block for the diffusion model.
 
     Args:
-        in_channels (int): The number of input channels.
+        in_channels (int): Number of input channels.
     """
-class ResidualBlock(nn.Module):
     def __init__(self, in_channels):
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1)
@@ -122,6 +162,15 @@ class ResidualBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(in_channels)
 
     def forward(self, x):
+        """
+        Forward pass through the residual block.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor after applying residual block.
+        """
         identity = x
         out = self.conv1(x)
         out = self.bn1(out)
@@ -132,33 +181,14 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
         return out
 
-    """
-        Initializes a new instance of the DiffusionModel class.
-
-        Args:
-            nc (int): The number of input channels.
-            ngf (int, optional): The number of feature maps in the encoder and decoder. Defaults to 64.
-
-        Initializes the main sequence of convolutional layers with the specified parameters.
-
-        The encoder consists of the following layers:
-        - Conv2d layer with kernel size 4, stride 2, and padding 1.
-        - BatchNorm2d layer.
-        - ReLU activation function.
-        - Conv2d layer with kernel size 4, stride 2, and padding 1.
-        - BatchNorm2d layer.
-        - ReLU activation function.
-        - ResidualBlock layer.
-
-        The decoder consists of the following layers:
-        - ResidualBlock layer.
-        - ConvTranspose2d layer with kernel size 4, stride 2, and padding 1.
-        - BatchNorm2d layer.
-        - ReLU activation function.
-        - ConvTranspose2d layer with kernel size 4, stride 2, and padding 1.
-        - Tanh activation function.
-        """
 class DiffusionModel(nn.Module):
+    """
+    Diffusion model for image denoising.
+
+    Args:
+        nc (int): Number of channels in the input image.
+        ngf (int, optional): Size of feature maps. Default is 64.
+    """
     def __init__(self, nc, ngf=64):
         super(DiffusionModel, self).__init__()
         self.encoder = nn.Sequential(
@@ -181,30 +211,58 @@ class DiffusionModel(nn.Module):
         )
 
     def forward(self, x):
+        """
+        Forward pass through the diffusion model.
+
+        Args:
+            x (torch.Tensor): Input tensor (noisy image).
+
+        Returns:
+            torch.Tensor: Output tensor (denoised image).
+        """
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         decoded = torch.clamp(decoded, 0, 1)
         return decoded
 
-    """
-        Initializes a new instance of the CosineScheduler class.
-
-        Args:
-            num_steps (int): The number of steps in the cosine schedule.
-            max_noise (float, optional): The maximum noise level. Defaults to 1.0.
-            min_noise (float, optional): The minimum noise level. Defaults to 0.0.
-        """
 class CosineScheduler:
+    """
+    Cosine scheduler for controlling noise level during training.
+
+    Args:
+        num_steps (int): Number of steps in the noise schedule.
+        max_noise (float, optional): Maximum noise level. Default is 1.0.
+        min_noise (float, optional): Minimum noise level. Default is 0.0.
+    """
     def __init__(self, num_steps, max_noise=1.0, min_noise=0.0):
         self.num_steps = num_steps
         self.max_noise = max_noise
         self.min_noise = min_noise
 
     def step(self, step):
+        """
+        Compute the noise level for a given step.
+
+        Args:
+            step (int): Current step in the schedule.
+
+        Returns:
+            float: Noise level for the current step.
+        """
         alpha = self.min_noise + 0.5 * (self.max_noise - self.min_noise) * (1 + math.cos(step * math.pi / self.num_steps))
         return alpha
 
 def add_noise(images, noise_level):
+    """
+    Add Gaussian noise to images.
+
+    Args:
+        images (torch.Tensor): Input images.
+        noise_level (float): Standard deviation of the noise.
+
+    Returns:
+        torch.Tensor: Noisy images.
+    """
     noise = torch.randn_like(images) * noise_level
     noisy_images = images + noise
     return noisy_images
@@ -218,7 +276,7 @@ transform = transforms.Compose([
 
 data_folder = 'training_data'
 dataset = TextImageDataset(data_folder, transform=transform)
-dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
 # Initialize models
 nz = 100  # Size of z latent vector
@@ -246,10 +304,9 @@ if not os.path.exists('model'):
 
 # Training loop for GAN
 num_epochs = 100
-sample_images = []
 
 for epoch in range(num_epochs):
-    for i, (texts, images) in enumerate(dataloader):
+    for i, (texts, images, identifier) in enumerate(dataloader):
         # Update Discriminator
         netD.zero_grad()
         real_images = images.to(device).clamp(0, 1)  # Ensure images are in [0, 1]
@@ -279,29 +336,27 @@ for epoch in range(num_epochs):
         D_G_z2 = output.mean().item()
         optimizerG.step()
 
-    print(
-        f"Epoch [{epoch + 1}/{num_epochs}], Loss_D: {errD.item():.4f}, Loss_G: {errG.item():.4f}, D(x): {D_x:.4f}, D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
-    if epoch % 10 == 0:
-        vutils.save_image(fake_images, f'output/samples_epoch_{epoch}_{current_date}.png',
-                          normalize=True)
-        sample_images.append(fake_images[0].cpu())
+        # Save samples and final images for each input image
+        if epoch % 10 == 0 and i % 10 == 0:
+            vutils.save_image(fake_images, f'output/samples_epoch_{epoch}_id_{identifier[0]}_{current_date}.png', normalize=True)
+            if epoch == num_epochs - 1:
+                torch.save(fake_images[0].cpu(), f'output/final_image_id_{identifier[0]}_{current_date}.pt')
+
+    print(f"Epoch [{epoch + 1}/{num_epochs}], Loss_D: {errD.item():.4f}, Loss_G: {errG.item():.4f}, D(x): {D_x:.4f}, D(G(z)): {D_G_z1:.4f}/{D_G_z2:.4f}")
 
 # Save the GAN models
 torch.save(netG.state_dict(), 'model/generator.pt')
 torch.save(netD.state_dict(), 'model/discriminator.pt')
 
-# Stack 10 sample images along the channel dimension
-final_image = torch.cat(sample_images[:10], dim=0)  # Stack images along the channel dimension
-
-# Save the final image tensor
-torch.save(final_image, f'output/final_image_{current_date}.pt')
-
 # Training loop for diffusion model
 num_steps = 1000  # Number of steps in the noise schedule
 noise_scheduler = CosineScheduler(num_steps)
 
+# Dictionary to accumulate denoised images for averaging
+final_images_accum = {}
+
 for epoch in range(num_epochs):
-    for i, (texts, images) in enumerate(dataloader):
+    for i, (texts, images, identifier) in enumerate(dataloader):
         images = images.clamp(0, 1)  # Ensure the images are normalized to the range [0, 1]
         images = images.to(device)
         step = epoch * len(dataloader) + i
@@ -317,7 +372,24 @@ for epoch in range(num_epochs):
         loss.backward()
         diffusion_optimizer.step()
 
+        # Accumulate the denoised images
+        id_str = identifier[0]
+        if id_str not in final_images_accum:
+            final_images_accum[id_str] = denoised_images.clone().detach()
+        else:
+            final_images_accum[id_str] += denoised_images.clone().detach()
+
+        # Save samples for each input image
+        if epoch % 10 == 0 and i % 10 == 0:
+            vutils.save_image(denoised_images, f'output/diffusion_samples_epoch_{epoch}_id_{id_str}_{current_date}.png', normalize=True)
+
     print(f"Epoch [{epoch + 1}/{num_epochs}], Diffusion Loss: {loss.item():.4f}")
+
+# Average the accumulated images and save as final images
+for id_str, accumulated_image in final_images_accum.items():
+    averaged_image = accumulated_image / num_epochs
+    torch.save(averaged_image[0].cpu(), f'output/diffusion_final_image_id_{id_str}_{current_date}.pt')
+    vutils.save_image(averaged_image, f'output/diffusion_final_image_id_{id_str}_{current_date}.png', normalize=True)
 
 # Save the diffusion model
 torch.save(diffusion_model.state_dict(), 'model/diffusion_model.pt')
