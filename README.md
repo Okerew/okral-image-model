@@ -28,6 +28,7 @@ This is a blueprint for example data
 ]
 
 ```
+#Note in this example images folder will be in the root folder not the traing_data folder
 _________________
 Diffusion
 --------------
