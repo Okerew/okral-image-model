@@ -22,7 +22,7 @@ _____________________
 How to add data
 -------------------
 This is a blueprint for example data
-```
+``` json
 [
     {
         "text": "A cat sitting on a couch.",
