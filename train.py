@@ -14,6 +14,7 @@ import math
 timestamp = time.time()
 current_date = time.ctime(timestamp)
 
+
 class Generator(nn.Module):
     """
     Generator network for GAN.
@@ -54,6 +55,7 @@ class Generator(nn.Module):
         """
         return self.main(input)
 
+
 class Discriminator(nn.Module):
     """
     Discriminator network for GAN.
@@ -91,6 +93,7 @@ class Discriminator(nn.Module):
             torch.Tensor: Discriminator output.
         """
         return self.main(input)
+
 
 class TextImageDataset(Dataset):
     """
@@ -146,6 +149,7 @@ class TextImageDataset(Dataset):
             image = self.transform(image)
         return text, image, identifier
 
+
 class ResidualBlock(nn.Module):
     """
     Residual block for the diffusion model.
@@ -180,6 +184,7 @@ class ResidualBlock(nn.Module):
         out += identity
         out = self.relu(out)
         return out
+
 
 class DiffusionModel(nn.Module):
     """
@@ -225,6 +230,7 @@ class DiffusionModel(nn.Module):
         decoded = torch.clamp(decoded, 0, 1)
         return decoded
 
+
 class CosineScheduler:
     """
     Cosine scheduler for controlling noise level during training.
@@ -252,6 +258,7 @@ class CosineScheduler:
         alpha = self.min_noise + 0.5 * (self.max_noise - self.min_noise) * (1 + math.cos(step * math.pi / self.num_steps))
         return alpha
 
+
 def add_noise(images, noise_level):
     """
     Add Gaussian noise to images.
@@ -266,6 +273,7 @@ def add_noise(images, noise_level):
     noise = torch.randn_like(images) * noise_level
     noisy_images = images + noise
     return noisy_images
+
 
 # Preprocessing and loading data
 transform = transforms.Compose([
@@ -388,7 +396,6 @@ for epoch in range(num_epochs):
 # Average the accumulated images and save as final images
 for id_str, accumulated_image in final_images_accum.items():
     averaged_image = accumulated_image / num_epochs
-    torch.save(averaged_image[0].cpu(), f'output/diffusion_final_image_id_{id_str}_{current_date}.pt')
     vutils.save_image(averaged_image, f'output/diffusion_final_image_id_{id_str}_{current_date}.png', normalize=True)
 
 # Save the diffusion model
