@@ -103,6 +103,7 @@ class TextImageDataset(Dataset):
         data_folder (str): Path to the folder containing the data.
         transform (callable, optional): Optional transform to be applied on an image sample.
     """
+
     def __init__(self, data_folder, transform=None):
         self.data_folder = data_folder
         self.transform = transform
@@ -141,13 +142,20 @@ class TextImageDataset(Dataset):
             idx (int): Index of the sample.
 
         Returns:
-            tuple: Tuple containing text, image, and identifier.
+            tuple: Tuple containing processed text, image, and identifier.
         """
         text, image_path, identifier = self.data[idx]
+
+        # Process the text using SpaCy
+        doc = self.nlp(text)
+        processed_text = [
+            (token.text, token.lemma_, token.pos_, token.tag_, token.dep_, token.shape_, token.is_alpha, token.is_stop)
+            for token in doc]
+
         image = Image.open(image_path).convert('RGB')
         if self.transform:
             image = self.transform(image)
-        return text, image, identifier
+        return processed_text, image, identifier
 
 
 class ResidualBlock(nn.Module):
@@ -285,6 +293,11 @@ transform = transforms.Compose([
 data_folder = 'training_data'
 dataset = TextImageDataset(data_folder, transform=transform)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+
+for texts, images, identifier in dataloader:
+    print(f"Processed Text: {texts}")
+    print(f"Image: {images.shape}")
+    print(f"Identifier: {identifier}")
 
 # Initialize models
 nz = 100  # Size of z latent vector
